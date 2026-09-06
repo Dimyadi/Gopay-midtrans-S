@@ -1,0 +1,6 @@
+{
+  "name": "Midtrans Subscription Demo",
+  "description": "Demo dan testing Midtrans Subscription API untuk perbandingan Card vs GoPay Tokenization.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

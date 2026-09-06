@@ -1,0 +1,168 @@
+{% extends 'base.html' %}
+
+{% block title %}Pembayaran Kartu Kredit - Midtrans Snap{% endblock %}
+
+{% block extra_head %}
+<!-- Midtrans Snap JS -->
+<script src="{{ MIDTRANS_SNAP_URL }}" data-client-key="{{ client_key }}"></script>
+{% endblock %}
+
+{% block content %}
+<div class="max-w-xl mx-auto">
+    <div class="mb-6">
+        <a href="{% url 'payments:subscribe' %}" class="inline-flex items-center text-xs font-semibold text-slate-500 hover:text-slate-900 transition mb-2">
+            ← Pilih Metode Lain
+        </a>
+        <div class="flex items-center gap-2">
+            <span class="p-2 rounded-lg bg-blue-100 text-blue-700">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" /></svg>
+            </span>
+            <div>
+                <h1 class="text-2xl font-bold text-slate-900">Alur Card: Snap & Tokenization</h1>
+                <p class="text-xs text-slate-500">Uji coba tokenisasi kartu kredit/debit via Midtrans Snap</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Subscriber Summary Card -->
+    <div class="bg-white border border-slate-200 rounded-2xl shadow-sm p-6 mb-6">
+        <h3 class="text-xs font-bold uppercase text-slate-400 tracking-wider mb-4">Ringkasan Calon Subscriber</h3>
+        
+        <div class="grid grid-cols-2 gap-4 text-xs mb-4">
+            <div>
+                <span class="text-slate-500">Nama Lengkap</span>
+                <p class="font-bold text-slate-900 text-sm mt-0.5">{{ subscriber.name }}</p>
+            </div>
+            <div>
+                <span class="text-slate-500">Email</span>
+                <p class="font-bold text-slate-900 text-sm mt-0.5">{{ subscriber.email }}</p>
+            </div>
+            <div>
+                <span class="text-slate-500">Nomor Telepon</span>
+                <p class="font-bold text-slate-900 text-sm mt-0.5">{{ subscriber.phone }}</p>
+            </div>
+            <div>
+                <span class="text-slate-500">Status Saat Ini</span>
+                <p class="mt-0.5"><span class="inline-block px-2 py-0.5 rounded text-[11px] font-bold bg-amber-100 text-amber-800 uppercase">{{ subscriber.status }}</span></p>
+            </div>
+        </div>
+
+        <div class="border-t border-slate-100 pt-4 flex items-center justify-between">
+            <div>
+                <span class="text-xs text-slate-500">Biaya Paket Langganan</span>
+                <p class="font-bold text-slate-800 text-xs">{{ plan.name }}</p>
+            </div>
+            <div class="text-right">
+                <p class="text-xl font-black text-blue-600">Rp {{ plan.amount|floatformat:0 }}</p>
+                <p class="text-[11px] text-slate-400">per {{ plan.interval }} {{ plan.get_interval_unit_display|lower }}</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Snap Action Card -->
+    <div class="bg-white border border-slate-200 rounded-2xl shadow-sm p-6 space-y-4 text-center">
+        {% if error_message %}
+        <div class="p-3 bg-rose-50 border border-rose-200 text-rose-800 rounded-xl text-xs text-left">
+            <strong>Midtrans Error:</strong> {{ error_message }}
+        </div>
+        {% endif %}
+
+        <div class="p-4 rounded-xl bg-slate-50 border border-slate-200 text-left text-xs space-y-2">
+            <div class="font-bold text-slate-800 flex items-center gap-1.5">
+                <svg class="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                Proses Kerja Card Tokenization:
+            </div>
+            <ol class="list-decimal list-inside space-y-1 text-slate-600 text-[11px]">
+                <li>Snap token dibuat dengan parameter <code>credit_card.save_card: true</code>.</li>
+                <li>Popup Midtrans Snap dibuka untuk pembayaran pertama.</li>
+                <li>Setelah settlement pertama, Midtrans menghasilkan <code>saved_token_id</code>.</li>
+                <li>Token diteruskan ke <code>core_api.create_subscription()</code> untuk charge otomatis recurring bulanan.</li>
+            </ol>
+        </div>
+
+        <!-- Snap Button -->
+        <button id="pay-button" type="button" class="w-full py-4 px-6 rounded-xl font-bold text-white bg-blue-600 hover:bg-blue-700 shadow-md transition transform active:scale-98 flex items-center justify-center gap-2 text-base">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" /></svg>
+            Bayar & Simpan Kartu via Snap
+        </button>
+
+        <!-- Sandbox Credit Card Testing Details -->
+        <div class="text-[11px] text-slate-500 bg-amber-50/70 border border-amber-200/80 rounded-xl p-3 text-left">
+            <strong class="text-amber-900 block mb-1">Kartu Pengujian Sandbox Midtrans:</strong>
+            Nomor: <code class="font-bold text-slate-800">4811 1111 1111 1114</code> • Exp: <code class="font-bold text-slate-800">12/28</code> • CVV: <code class="font-bold text-slate-800">123</code> • OTP 3DS: <code class="font-bold text-slate-800">112233</code>
+        </div>
+
+        <!-- Quick Simulation Button for offline/test key -->
+        <div class="border-t border-slate-100 pt-3">
+            <button id="sim-button" type="button" class="text-xs text-blue-600 hover:text-blue-800 hover:underline font-semibold">
+                Atau langsung simulasikan pembayaran sukses (Test Mode) →
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Hidden Form for Finish Submission -->
+<form id="finish-form" method="POST" action="{% url 'payments:subscribe_card_finish' %}" style="display: none;">
+    {% csrf_token %}
+    <input type="hidden" name="subscriber_id" value="{{ subscriber.id }}">
+    <input type="hidden" name="saved_token_id" id="form-saved-token" value="">
+    <input type="hidden" name="order_id" id="form-order-id" value="{{ order_id }}">
+    <input type="hidden" name="transaction_id" id="form-transaction-id" value="">
+</form>
+
+{% endblock %}
+
+{% block extra_scripts %}
+<script type="text/javascript">
+    const snapToken = "{{ snap_token }}";
+    const payButton = document.getElementById('pay-button');
+    const simButton = document.getElementById('sim-button');
+    const finishForm = document.getElementById('finish-form');
+
+    function completeSubscription(savedTokenId, transactionId) {
+        document.getElementById('form-saved-token').value = savedTokenId || ('sim-card-token-' + Date.now());
+        document.getElementById('form-transaction-id').value = transactionId || ('sim-trx-' + Date.now());
+        finishForm.submit();
+    }
+
+    if (payButton) {
+        payButton.onclick = function() {
+            if (!snapToken || snapToken.startsWith('SNAP-SIMULATED')) {
+                // If in simulated demo mode or key not yet active in midtrans
+                completeSubscription('sim-saved-card-token-' + Math.random().toString(36).substring(7));
+                return;
+            }
+
+            if (window.snap) {
+                window.snap.pay(snapToken, {
+                    onSuccess: function(result) {
+                        console.log('Snap Success:', result);
+                        const savedToken = result.saved_token_id || result.transaction_id || '';
+                        completeSubscription(savedToken, result.transaction_id);
+                    },
+                    onPending: function(result) {
+                        console.log('Snap Pending:', result);
+                        alert('Pembayaran pending, silakan selesaikan pembayaran.');
+                    },
+                    onError: function(result) {
+                        console.error('Snap Error:', result);
+                        alert('Pembayaran gagal atau dibatalkan.');
+                    },
+                    onClose: function() {
+                        console.log('Customer closed the Snap popup without finishing.');
+                    }
+                });
+            } else {
+                alert('Midtrans Snap SDK gagal dimuat. Menggunakan mode simulasi.');
+                completeSubscription('sim-token-offline');
+            }
+        };
+    }
+
+    if (simButton) {
+        simButton.onclick = function() {
+            completeSubscription('sim-token-' + Math.random().toString(36).substring(7));
+        };
+    }
+</script>
+{% endblock %}

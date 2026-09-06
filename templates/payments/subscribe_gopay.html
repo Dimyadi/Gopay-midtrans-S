@@ -1,0 +1,110 @@
+{% extends 'base.html' %}
+
+{% block title %}Hubungkan Akun GoPay - Midtrans Tokenization{% endblock %}
+
+{% block content %}
+<div class="max-w-xl mx-auto">
+    <div class="mb-6">
+        <a href="{% url 'payments:subscribe' %}" class="inline-flex items-center text-xs font-semibold text-slate-500 hover:text-slate-900 transition mb-2">
+            ← Pilih Metode Lain
+        </a>
+        <div class="flex items-center gap-2">
+            <span class="p-2 rounded-lg bg-cyan-100 text-cyan-700 font-black text-sm">
+                GP
+            </span>
+            <div>
+                <h1 class="text-2xl font-bold text-slate-900">Alur GoPay: Tokenization & Linking</h1>
+                <p class="text-xs text-slate-500">Menghubungkan akun GoPay via Core API Account Linking</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Subscriber Summary Card -->
+    <div class="bg-white border border-slate-200 rounded-2xl shadow-sm p-6 mb-6">
+        <h3 class="text-xs font-bold uppercase text-slate-400 tracking-wider mb-4">Ringkasan Calon Subscriber</h3>
+        
+        <div class="grid grid-cols-2 gap-4 text-xs mb-4">
+            <div>
+                <span class="text-slate-500">Nama Lengkap</span>
+                <p class="font-bold text-slate-900 text-sm mt-0.5">{{ subscriber.name }}</p>
+            </div>
+            <div>
+                <span class="text-slate-500">Nomor HP GoPay</span>
+                <p class="font-bold text-cyan-700 text-sm mt-0.5">{{ subscriber.phone }}</p>
+            </div>
+            <div>
+                <span class="text-slate-500">Metode</span>
+                <p class="font-semibold text-slate-900 mt-0.5">GoPay Tokenization</p>
+            </div>
+            <div>
+                <span class="text-slate-500">Status Awal</span>
+                <p class="mt-0.5"><span class="inline-block px-2 py-0.5 rounded text-[11px] font-bold bg-amber-100 text-amber-800 uppercase">{{ subscriber.status }}</span></p>
+            </div>
+        </div>
+
+        <div class="border-t border-slate-100 pt-4 flex items-center justify-between">
+            <div>
+                <span class="text-xs text-slate-500">Paket Langganan</span>
+                <p class="font-bold text-slate-800 text-xs">{{ plan.name }}</p>
+            </div>
+            <div class="text-right">
+                <p class="text-xl font-black text-cyan-600">Rp {{ plan.amount|floatformat:0 }}</p>
+                <p class="text-[11px] text-slate-400">per {{ plan.interval }} {{ plan.get_interval_unit_display|lower }}</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- GoPay Linking Card -->
+    <div class="bg-white border border-slate-200 rounded-2xl shadow-sm p-6 space-y-4">
+        {% if error_message %}
+        <div class="p-3 bg-rose-50 border border-rose-200 text-rose-800 rounded-xl text-xs">
+            <strong>Midtrans Error:</strong> {{ error_message }}
+        </div>
+        {% endif %}
+
+        <div class="p-4 rounded-xl bg-cyan-50/60 border border-cyan-200 text-xs space-y-2">
+            <div class="font-bold text-cyan-900 flex items-center gap-1.5">
+                <svg class="w-4 h-4 text-cyan-700" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                Alur Kerja GoPay Tokenization (Account Linking):
+            </div>
+            <ol class="list-decimal list-inside space-y-1 text-cyan-800 text-[11px]">
+                <li>Midtrans <code>core_api.link_payment_account()</code> dipanggil dengan nomor HP GoPay.</li>
+                <li>Midtrans mengembalikan URL linking untuk verifikasi OTP & PIN.</li>
+                <li>Setelah linking sukses, akun GoPay menghasilkan <code>account_id</code> & payment token.</li>
+                <li>Sistem memanggil <code>core_api.create_subscription()</code> menggunakan token GoPay tersebut.</li>
+            </ol>
+        </div>
+
+        <!-- Testing instruction box -->
+        <div class="p-3 bg-amber-50 border border-amber-200 rounded-xl text-xs space-y-1.5 text-amber-900">
+            <div class="font-bold flex items-center gap-1">
+                <span>🔑</span> Kredensial Testing GoPay Sandbox:
+            </div>
+            <p class="text-[11px] leading-relaxed">
+                Pada halaman simulator GoPay Sandbox Midtrans:
+                <br>• Masukkan OTP: <code class="font-bold text-slate-800 bg-white px-1.5 py-0.5 rounded border border-amber-300">1234</code>
+                <br>• Masukkan PIN: <code class="font-bold text-slate-800 bg-white px-1.5 py-0.5 rounded border border-amber-300">123456</code>
+            </p>
+        </div>
+
+        <!-- Action Button: Open GoPay Linking -->
+        {% if link_data and link_data.redirect_url %}
+        <a href="{{ link_data.redirect_url }}" class="w-full py-3.5 px-6 rounded-xl font-bold text-white bg-cyan-600 hover:bg-cyan-700 shadow transition transform active:scale-98 flex items-center justify-center gap-2 text-sm">
+            <span>Buka Halaman GoPay Linking (OTP + PIN)</span>
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" /></svg>
+        </a>
+        {% else %}
+        <a href="{{ callback_url }}&account_id=gopay-acc-test-123" class="w-full py-3.5 px-6 rounded-xl font-bold text-white bg-cyan-600 hover:bg-cyan-700 shadow transition flex items-center justify-center gap-2 text-sm">
+            Proses Linking GoPay
+        </a>
+        {% endif %}
+
+        <!-- Quick Simulation Button -->
+        <div class="border-t border-slate-100 pt-3 text-center">
+            <a href="{% url 'payments:subscribe_gopay_callback' %}?subscriber_id={{ subscriber.id }}&account_id={{ subscriber.gopay_account_id|default:'gopay-acc-sim-test' }}" class="text-xs text-cyan-600 hover:text-cyan-800 hover:underline font-semibold">
+                Atau simulasikan linking sukses langsung (Bypass Manual OTP) →
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}

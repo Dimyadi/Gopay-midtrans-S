@@ -1,0 +1,494 @@
+{% extends 'base.html' %}
+
+{% block title %}Dashboard Perbandingan - Card vs GoPay{% endblock %}
+
+{% block content %}
+<div class="space-y-8">
+    <!-- Header -->
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200 pb-6">
+        <div>
+            <div class="inline-flex items-center gap-2 text-xs font-semibold text-blue-700 bg-blue-50 px-2.5 py-1 rounded-md mb-2">
+                <span>⚡ Analisis Kinerja Subscription API</span>
+            </div>
+            <h1 class="text-3xl font-extrabold text-slate-900 tracking-tight">Dashboard Perbandingan</h1>
+            <p class="text-sm text-slate-500 mt-1">
+                Perbandingan performa, reliabilitas, dan status tagihan antara <strong>Card Tokenization</strong> dan <strong>GoPay Linking</strong>.
+            </p>
+        </div>
+
+        <div class="flex items-center gap-3">
+            <a href="{% url 'payments:subscribe' %}" class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-sm text-white bg-blue-600 hover:bg-blue-700 shadow-sm transition">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" /></svg>
+                Tambah Subscriber Baru
+            </a>
+        </div>
+    </div>
+
+    <!-- Webhook Notification Info Banner -->
+    <div class="bg-gradient-to-r from-slate-900 to-slate-800 text-white rounded-2xl p-5 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div class="space-y-1">
+            <div class="flex items-center gap-2">
+                <span class="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                <span class="text-xs font-bold uppercase tracking-wider text-emerald-400">Webhook Notification Listener Aktif</span>
+            </div>
+            <p class="text-xs text-slate-300">
+                Endpoint Webhook: <code class="font-mono bg-slate-800 text-amber-300 px-2 py-0.5 rounded text-xs border border-slate-700">{{ request.scheme }}://{{ request.get_host }}{% url 'payments:webhook_notification' %}</code>
+            </p>
+            <p class="text-[11px] text-slate-400">
+                Wajib set URL ini di <strong>Sandbox Dashboard Midtrans: Settings → Payment → Notification URL</strong>. Validasi signature SHA512 otomatis diterapkan.
+            </p>
+        </div>
+
+        <div class="shrink-0 flex items-center gap-2">
+            {% if server_key_configured %}
+            <span class="px-3 py-1 rounded-full text-xs font-semibold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                ✓ Server Key Terkonfigurasi
+            </span>
+            {% else %}
+            <span class="px-3 py-1 rounded-full text-xs font-semibold bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                ⚡ Mode Simulasi / Sandbox Demo
+            </span>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Ringkasan Angka: Perbandingan Card vs GoPay -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <!-- Card Metrics Box -->
+        <div class="bg-white rounded-2xl border border-blue-200 shadow-sm p-6 relative overflow-hidden">
+            <div class="absolute top-0 right-0 w-24 h-24 bg-blue-50 rounded-full -mr-8 -mt-8 pointer-events-none"></div>
+            <div class="flex items-center justify-between mb-4">
+                <div class="flex items-center gap-2.5">
+                    <div class="w-10 h-10 rounded-xl bg-blue-100 text-blue-700 flex items-center justify-center">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" /></svg>
+                    </div>
+                    <div>
+                        <h2 class="text-base font-bold text-slate-900">Kartu Kredit / Debit</h2>
+                        <span class="text-xs text-slate-500">Card Tokenization</span>
+                    </div>
+                </div>
+                <span class="px-2.5 py-1 rounded-md text-xs font-bold bg-blue-50 text-blue-700">
+                    {{ card_metrics.active }} Aktif
+                </span>
+            </div>
+
+            <div class="grid grid-cols-3 gap-3 border-t border-slate-100 pt-4 text-center">
+                <div>
+                    <span class="text-xs text-slate-500 block">Total Subscriber</span>
+                    <span class="text-2xl font-black text-slate-900">{{ card_metrics.total }}</span>
+                </div>
+                <div>
+                    <span class="text-xs text-slate-500 block">Charge Sukses</span>
+                    <span class="text-2xl font-black text-emerald-600">{{ card_metrics.success_charges }}</span>
+                </div>
+                <div>
+                    <span class="text-xs text-slate-500 block">Success Rate</span>
+                    <span class="text-2xl font-black text-blue-600">{{ card_metrics.success_rate }}%</span>
+                </div>
+            </div>
+
+            <div class="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
+                <span>Gagal Charge: <strong class="text-rose-600">{{ card_metrics.failed_charges }}</strong></span>
+                <span>Alur: Snap Popup → Tokenize</span>
+            </div>
+        </div>
+
+        <!-- GoPay Metrics Box -->
+        <div class="bg-white rounded-2xl border border-cyan-200 shadow-sm p-6 relative overflow-hidden">
+            <div class="absolute top-0 right-0 w-24 h-24 bg-cyan-50 rounded-full -mr-8 -mt-8 pointer-events-none"></div>
+            <div class="flex items-center justify-between mb-4">
+                <div class="flex items-center gap-2.5">
+                    <div class="w-10 h-10 rounded-xl bg-cyan-100 text-cyan-700 font-black flex items-center justify-center text-sm">
+                        GP
+                    </div>
+                    <div>
+                        <h2 class="text-base font-bold text-slate-900">GoPay</h2>
+                        <span class="text-xs text-slate-500">Account Linking / Tokenization</span>
+                    </div>
+                </div>
+                <span class="px-2.5 py-1 rounded-md text-xs font-bold bg-cyan-50 text-cyan-700">
+                    {{ gopay_metrics.active }} Aktif
+                </span>
+            </div>
+
+            <div class="grid grid-cols-3 gap-3 border-t border-slate-100 pt-4 text-center">
+                <div>
+                    <span class="text-xs text-slate-500 block">Total Subscriber</span>
+                    <span class="text-2xl font-black text-slate-900">{{ gopay_metrics.total }}</span>
+                </div>
+                <div>
+                    <span class="text-xs text-slate-500 block">Charge Sukses</span>
+                    <span class="text-2xl font-black text-emerald-600">{{ gopay_metrics.success_charges }}</span>
+                </div>
+                <div>
+                    <span class="text-xs text-slate-500 block">Success Rate</span>
+                    <span class="text-2xl font-black text-cyan-600">{{ gopay_metrics.success_rate }}%</span>
+                </div>
+            </div>
+
+            <div class="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
+                <span>Gagal Charge: <strong class="text-rose-600">{{ gopay_metrics.failed_charges }}</strong></span>
+                <span>Alur: Core API Link → OTP & PIN</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Section 1: Tabel Subscriber Card -->
+    <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+        <div class="p-5 border-b border-slate-200 bg-slate-50/50 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+            <div class="flex items-center gap-2">
+                <span class="p-1.5 rounded-lg bg-blue-100 text-blue-700">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" /></svg>
+                </span>
+                <h3 class="font-bold text-slate-900 text-base">Subscriber Kartu Kredit / Debit (Card Tokenization)</h3>
+            </div>
+            <span class="text-xs text-slate-500 font-medium">{{ card_subscribers.count }} total terdaftar</span>
+        </div>
+
+        <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs">
+                <thead class="bg-slate-50 text-slate-500 font-semibold border-b border-slate-200 uppercase tracking-wider text-[11px]">
+                    <tr>
+                        <th class="py-3.5 px-4">Nama & Kontak</th>
+                        <th class="py-3.5 px-4">Subscription ID & Token</th>
+                        <th class="py-3.5 px-4 text-center">Status</th>
+                        <th class="py-3.5 px-4">Charge Terakhir</th>
+                        <th class="py-3.5 px-4 text-center">Gagal</th>
+                        <th class="py-3.5 px-4 text-right">Aksi Testing</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100">
+                    {% for sub in card_subscribers %}
+                    <tr class="hover:bg-slate-50/60 transition">
+                        <td class="py-3.5 px-4">
+                            <div class="font-bold text-slate-900 text-sm">{{ sub.name }}</div>
+                            <div class="text-slate-500 text-[11px]">{{ sub.email }} • {{ sub.phone }}</div>
+                        </td>
+                        <td class="py-3.5 px-4 font-mono text-[11px]">
+                            <div class="text-slate-900 font-semibold truncate max-w-[200px]" title="{{ sub.midtrans_subscription_id }}">
+                                {{ sub.midtrans_subscription_id|default:"(belum dibuat)" }}
+                            </div>
+                            <div class="text-slate-400 text-[10px] truncate max-w-[200px]" title="{{ sub.midtrans_token }}">
+                                Token: {{ sub.midtrans_token|default:"-" }}
+                            </div>
+                        </td>
+                        <td class="py-3.5 px-4 text-center">
+                            {% if sub.status == 'active' %}
+                            <span class="px-2.5 py-1 rounded-full text-[11px] font-bold bg-emerald-100 text-emerald-800">ACTIVE</span>
+                            {% elif sub.status == 'pending' %}
+                            <span class="px-2.5 py-1 rounded-full text-[11px] font-bold bg-amber-100 text-amber-800">PENDING</span>
+                            {% elif sub.status == 'inactive' %}
+                            <span class="px-2.5 py-1 rounded-full text-[11px] font-bold bg-slate-200 text-slate-700">INACTIVE</span>
+                            {% else %}
+                            <span class="px-2.5 py-1 rounded-full text-[11px] font-bold bg-rose-100 text-rose-800">CANCELLED</span>
+                            {% endif %}
+                        </td>
+                        <td class="py-3.5 px-4 text-slate-600 text-[11px]">
+                            {% if sub.last_charge_date %}
+                            <div>{{ sub.last_charge_date|date:"d M Y H:i" }}</div>
+                            <div class="text-[10px] text-slate-400">{{ sub.last_charge_log.transaction_status }}</div>
+                            {% else %}
+                            <span class="text-slate-400">-</span>
+                            {% endif %}
+                        </td>
+                        <td class="py-3.5 px-4 text-center font-bold {% if sub.failed_charges_count > 0 %}text-rose-600{% else %}text-slate-400{% endif %}">
+                            {{ sub.failed_charges_count }}
+                        </td>
+                        <td class="py-3.5 px-4 text-right">
+                            <div class="flex items-center justify-end gap-1.5">
+                                <!-- Test Recurring Charge -->
+                                <button onclick="openSimulateModal('{{ sub.id }}', '{{ sub.name }}')" class="px-2.5 py-1 rounded bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-[11px] transition" title="Simulasi Webhook Tagihan">
+                                    ⚡ Test Charge
+                                </button>
+
+                                <!-- Toggle Enable/Disable -->
+                                <form method="POST" action="{% url 'payments:dashboard_toggle' sub.id %}" class="inline">
+                                    {% csrf_token %}
+                                    {% if sub.status == 'active' %}
+                                    <button type="submit" class="px-2.5 py-1 rounded bg-amber-50 hover:bg-amber-100 text-amber-800 font-semibold text-[11px] transition">
+                                        Disable
+                                    </button>
+                                    {% else %}
+                                    <button type="submit" class="px-2.5 py-1 rounded bg-emerald-50 hover:bg-emerald-100 text-emerald-800 font-semibold text-[11px] transition">
+                                        Enable
+                                    </button>
+                                    {% endif %}
+                                </form>
+
+                                <!-- Cancel -->
+                                {% if sub.status != 'cancelled' %}
+                                <form method="POST" action="{% url 'payments:dashboard_cancel' sub.id %}" onsubmit="return confirm('Batalkan subscription ini?')" class="inline">
+                                    {% csrf_token %}
+                                    <button type="submit" class="px-2.5 py-1 rounded bg-rose-50 hover:bg-rose-100 text-rose-700 font-semibold text-[11px] transition">
+                                        Cancel
+                                    </button>
+                                </form>
+                                {% endif %}
+                            </div>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="6" class="py-8 text-center text-slate-400 text-xs">
+                            Belum ada subscriber metode Kartu Kredit/Debit.
+                            <a href="{% url 'payments:subscribe' %}" class="text-blue-600 hover:underline ml-1 font-semibold">Buat Subscriber Card →</a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Section 2: Tabel Subscriber GoPay -->
+    <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+        <div class="p-5 border-b border-slate-200 bg-slate-50/50 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+            <div class="flex items-center gap-2">
+                <span class="px-2 py-0.5 rounded-lg bg-cyan-100 text-cyan-800 font-black text-xs">GP</span>
+                <h3 class="font-bold text-slate-900 text-base">Subscriber GoPay (Account Linking / Tokenization)</h3>
+            </div>
+            <span class="text-xs text-slate-500 font-medium">{{ gopay_subscribers.count }} total terdaftar</span>
+        </div>
+
+        <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs">
+                <thead class="bg-slate-50 text-slate-500 font-semibold border-b border-slate-200 uppercase tracking-wider text-[11px]">
+                    <tr>
+                        <th class="py-3.5 px-4">Nama & Nomor HP</th>
+                        <th class="py-3.5 px-4">Subscription ID & Account ID</th>
+                        <th class="py-3.5 px-4 text-center">Status</th>
+                        <th class="py-3.5 px-4">Charge Terakhir</th>
+                        <th class="py-3.5 px-4 text-center">Gagal</th>
+                        <th class="py-3.5 px-4 text-right">Aksi Testing</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100">
+                    {% for sub in gopay_subscribers %}
+                    <tr class="hover:bg-slate-50/60 transition">
+                        <td class="py-3.5 px-4">
+                            <div class="font-bold text-slate-900 text-sm">{{ sub.name }}</div>
+                            <div class="text-cyan-700 font-semibold text-[11px]">{{ sub.phone }}</div>
+                            <div class="text-slate-400 text-[10px]">{{ sub.email }}</div>
+                        </td>
+                        <td class="py-3.5 px-4 font-mono text-[11px]">
+                            <div class="text-slate-900 font-semibold truncate max-w-[200px]" title="{{ sub.midtrans_subscription_id }}">
+                                {{ sub.midtrans_subscription_id|default:"(belum dibuat)" }}
+                            </div>
+                            <div class="text-slate-500 text-[10px] truncate max-w-[200px]" title="{{ sub.gopay_account_id }}">
+                                Acc ID: {{ sub.gopay_account_id|default:"-" }}
+                            </div>
+                        </td>
+                        <td class="py-3.5 px-4 text-center">
+                            {% if sub.status == 'active' %}
+                            <span class="px-2.5 py-1 rounded-full text-[11px] font-bold bg-emerald-100 text-emerald-800">ACTIVE</span>
+                            {% elif sub.status == 'pending' %}
+                            <span class="px-2.5 py-1 rounded-full text-[11px] font-bold bg-amber-100 text-amber-800">PENDING</span>
+                            {% elif sub.status == 'inactive' %}
+                            <span class="px-2.5 py-1 rounded-full text-[11px] font-bold bg-slate-200 text-slate-700">INACTIVE</span>
+                            {% else %}
+                            <span class="px-2.5 py-1 rounded-full text-[11px] font-bold bg-rose-100 text-rose-800">CANCELLED</span>
+                            {% endif %}
+                        </td>
+                        <td class="py-3.5 px-4 text-slate-600 text-[11px]">
+                            {% if sub.last_charge_date %}
+                            <div>{{ sub.last_charge_date|date:"d M Y H:i" }}</div>
+                            <div class="text-[10px] text-slate-400">{{ sub.last_charge_log.transaction_status }}</div>
+                            {% else %}
+                            <span class="text-slate-400">-</span>
+                            {% endif %}
+                        </td>
+                        <td class="py-3.5 px-4 text-center font-bold {% if sub.failed_charges_count > 0 %}text-rose-600{% else %}text-slate-400{% endif %}">
+                            {{ sub.failed_charges_count }}
+                        </td>
+                        <td class="py-3.5 px-4 text-right">
+                            <div class="flex items-center justify-end gap-1.5">
+                                <!-- Test Recurring Charge -->
+                                <button onclick="openSimulateModal('{{ sub.id }}', '{{ sub.name }}')" class="px-2.5 py-1 rounded bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-[11px] transition" title="Simulasi Webhook Tagihan">
+                                    ⚡ Test Charge
+                                </button>
+
+                                <!-- Toggle Enable/Disable -->
+                                <form method="POST" action="{% url 'payments:dashboard_toggle' sub.id %}" class="inline">
+                                    {% csrf_token %}
+                                    {% if sub.status == 'active' %}
+                                    <button type="submit" class="px-2.5 py-1 rounded bg-amber-50 hover:bg-amber-100 text-amber-800 font-semibold text-[11px] transition">
+                                        Disable
+                                    </button>
+                                    {% else %}
+                                    <button type="submit" class="px-2.5 py-1 rounded bg-emerald-50 hover:bg-emerald-100 text-emerald-800 font-semibold text-[11px] transition">
+                                        Enable
+                                    </button>
+                                    {% endif %}
+                                </form>
+
+                                <!-- Cancel -->
+                                {% if sub.status != 'cancelled' %}
+                                <form method="POST" action="{% url 'payments:dashboard_cancel' sub.id %}" onsubmit="return confirm('Batalkan subscription ini?')" class="inline">
+                                    {% csrf_token %}
+                                    <button type="submit" class="px-2.5 py-1 rounded bg-rose-50 hover:bg-rose-100 text-rose-700 font-semibold text-[11px] transition">
+                                        Cancel
+                                    </button>
+                                </form>
+                                {% endif %}
+                            </div>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="6" class="py-8 text-center text-slate-400 text-xs">
+                            Belum ada subscriber metode GoPay.
+                            <a href="{% url 'payments:subscribe' %}" class="text-cyan-600 hover:underline ml-1 font-semibold">Buat Subscriber GoPay →</a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Section 3: Recent Transaction Logs (Webhook Incoming) -->
+    <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+        <div class="p-5 border-b border-slate-200 bg-slate-50/50 flex items-center justify-between">
+            <div>
+                <h3 class="font-bold text-slate-900 text-base">Riwayat Notifikasi Webhook & Transaksi (TransactionLog)</h3>
+                <p class="text-xs text-slate-500 mt-0.5">Membedakan antara charge pertama vs recurring charge otomatis</p>
+            </div>
+            <span class="text-xs text-slate-400 font-medium">20 transaksi terbaru</span>
+        </div>
+
+        <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs">
+                <thead class="bg-slate-50 text-slate-500 font-semibold border-b border-slate-200 uppercase tracking-wider text-[11px]">
+                    <tr>
+                        <th class="py-3.5 px-4">Waktu</th>
+                        <th class="py-3.5 px-4">Subscriber</th>
+                        <th class="py-3.5 px-4">Order ID & Trx ID</th>
+                        <th class="py-3.5 px-4">Metode</th>
+                        <th class="py-3.5 px-4">Nominal</th>
+                        <th class="py-3.5 px-4 text-center">Status</th>
+                        <th class="py-3.5 px-4 text-center">Jenis Charge</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100">
+                    {% for log in recent_logs %}
+                    <tr class="hover:bg-slate-50/60 transition">
+                        <td class="py-3.5 px-4 text-slate-500 whitespace-nowrap text-[11px]">
+                            {{ log.created_at|date:"d M Y H:i:s" }}
+                        </td>
+                        <td class="py-3.5 px-4">
+                            <span class="font-bold text-slate-900">{{ log.subscriber.name }}</span>
+                        </td>
+                        <td class="py-3.5 px-4 font-mono text-[11px]">
+                            <div class="text-slate-800 font-medium">{{ log.order_id }}</div>
+                            <div class="text-slate-400 text-[10px]">{{ log.transaction_id|default:"-" }}</div>
+                        </td>
+                        <td class="py-3.5 px-4">
+                            <span class="uppercase font-bold text-[10px] px-2 py-0.5 rounded {% if log.payment_type == 'credit_card' %}bg-blue-100 text-blue-800{% else %}bg-cyan-100 text-cyan-800{% endif %}">
+                                {{ log.payment_type }}
+                            </span>
+                        </td>
+                        <td class="py-3.5 px-4 font-bold text-slate-900">
+                            Rp {{ log.gross_amount }}
+                        </td>
+                        <td class="py-3.5 px-4 text-center">
+                            {% if log.transaction_status == 'settlement' or log.transaction_status == 'capture' %}
+                            <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 uppercase">
+                                {{ log.transaction_status }}
+                            </span>
+                            {% elif log.transaction_status == 'pending' %}
+                            <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800 uppercase">
+                                PENDING
+                            </span>
+                            {% else %}
+                            <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-100 text-rose-800 uppercase">
+                                {{ log.transaction_status }}
+                            </span>
+                            {% endif %}
+                        </td>
+                        <td class="py-3.5 px-4 text-center">
+                            {% if log.is_recurring_charge %}
+                            <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded text-[10px] font-extrabold bg-purple-100 text-purple-800">
+                                🔄 RECURRING
+                            </span>
+                            {% else %}
+                            <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded text-[10px] font-semibold bg-slate-100 text-slate-600">
+                                🚀 CHARGE AWAL
+                            </span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="7" class="py-8 text-center text-slate-400 text-xs">
+                            Belum ada riwayat transaksi atau notifikasi webhook yang tercatat.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Simulate Recurring Webhook Notification -->
+<div id="simulate-modal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+    <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-xl border border-slate-200">
+        <div class="flex items-center justify-between mb-4">
+            <h4 class="text-base font-bold text-slate-900">Uji Coba Recurring Webhook</h4>
+            <button onclick="closeSimulateModal()" class="text-slate-400 hover:text-slate-600">✕</button>
+        </div>
+
+        <p class="text-xs text-slate-500 mb-4">
+            Kirimkan simulasi webhook notifikasi tagihan recurring otomatis untuk subscriber:
+            <strong id="modal-sub-name" class="text-slate-900 block mt-0.5"></strong>
+        </p>
+
+        <form method="POST" action="{% url 'payments:dashboard_simulate_charge' %}" class="space-y-4">
+            {% csrf_token %}
+            <input type="hidden" name="subscriber_id" id="modal-sub-id" value="">
+
+            <div>
+                <label class="block text-xs font-bold uppercase text-slate-600 mb-2">Pilih Respon Tagihan</label>
+                <div class="grid grid-cols-2 gap-3">
+                    <label class="p-3 border-2 border-slate-200 rounded-xl cursor-pointer hover:border-emerald-400 has-[:checked]:border-emerald-600 has-[:checked]:bg-emerald-50 text-center">
+                        <input type="radio" name="status_type" value="settlement" checked class="sr-only">
+                        <span class="text-emerald-700 font-bold block text-sm">Settlement</span>
+                        <span class="text-[11px] text-slate-500">Berhasil tagih</span>
+                    </label>
+
+                    <label class="p-3 border-2 border-slate-200 rounded-xl cursor-pointer hover:border-rose-400 has-[:checked]:border-rose-600 has-[:checked]:bg-rose-50 text-center">
+                        <input type="radio" name="status_type" value="deny" class="sr-only">
+                        <span class="text-rose-700 font-bold block text-sm">Deny / Gagal</span>
+                        <span class="text-[11px] text-slate-500">Uji retry & auto inactive</span>
+                    </label>
+                </div>
+            </div>
+
+            <p class="text-[11px] text-slate-400">
+                Sistem akan membuat <code>order_id</code> baru dengan prefix <code>RECURRING-</code>, menghitung signature SHA512, mencatat <code>TransactionLog</code> (dengan <code>is_recurring_charge=True</code>), serta mengupdate status subscriber secara otomatis.
+            </p>
+
+            <div class="flex items-center justify-end gap-2 pt-2">
+                <button type="button" onclick="closeSimulateModal()" class="px-4 py-2 rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-100">
+                    Batal
+                </button>
+                <button type="submit" class="px-5 py-2.5 rounded-xl text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 shadow">
+                    Kirim Simulasi Webhook
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    function openSimulateModal(subId, subName) {
+        document.getElementById('modal-sub-id').value = subId;
+        document.getElementById('modal-sub-name').innerText = subName;
+        document.getElementById('simulate-modal').classList.remove('hidden');
+    }
+
+    function closeSimulateModal() {
+        document.getElementById('simulate-modal').classList.add('hidden');
+    }
+</script>
+{% endblock %}
